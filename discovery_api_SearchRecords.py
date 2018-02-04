@@ -23,7 +23,7 @@ import pandas as pd;  #version 0.22.0, data analysis package, gives us "super sp
 ## this time using the option to name it (?P<some_name>.*?) the . matches any/all characters following, * says repeated an unknown number of times and ? tells the * not to be "greedy",
 ## otherwise the first matching label would grab all the rest of the text.  As we expect each bit of text to end with a full stop (period) and a space, outside the named group, but inside the
 ## overall group for the label we say there's a full stop followed by a space \. (here we have to escape the . with \ as we want to match literally the . character, not any character.
-## Then we just put the blocks for each label following th efirst one in the expected order of appearance.
+## Then we just put the blocks for each label following the first one in the expected order of appearance.
 ## So for example label "Label":
 ##		(Label: (?P<label>.*?)\. )?
 
