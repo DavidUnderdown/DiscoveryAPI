@@ -37,8 +37,9 @@ descfields_list=[]
 for label in labels :
 	## construct the normalised label_id, add to list of label_ids
 	label_id=label.casefold().replace(" ","_").replace("(","").replace(")","")
-	## construct the group for the label and its associated text
-	relabelgroup=r"("+label+r":( )?"+r"(?P<"+label_id+r">.*?)\. )?"
+	## construct the group for the label and its associated text, if there are brackets in the label name, escape them - might need to extend this to escape other regex metacharacters.
+	escaped_label=label.replace("(",r"\(").replace(")",r"\)")
+	relabelgroup=r"("+escaped_label+r":( )?"+r"(?P<"+label_id+r">.*?)\. )?"
 	descfields_list.append(relabelgroup)
 
 ## Now build the full regex, join the elements of the list into one big string using empty string as the joining character (making each group optional):
@@ -48,26 +49,26 @@ desc_fields=re.compile(redescfields)
 ## Confirm the regex to be used
 print("regex for extracting data from description:",desc_fields.pattern)
 
-def get_addressees(v) :
-	'''Function used to extract the addressees of petition our of the description field'''
+def get_labelled_data(v,label_id) :
+	'''Function used to extract the data associated with a given label used in the description field'''
 	match=desc_fields.search(v["description"])
 	if match :
 		matchdict=match.groupdict()
-		addressees=matchdict["addressees"]
+		labelled_data=matchdict[label_id]
 		## if you're not getting expected output, try uncommenting print statements below to see which descriptions are actually matching.
-		if addressees :
+		if labelled_data :
 			## tidy up a bit, remove any square brackets used to fill out detail to make data more consistent for analysis
-			addressees=addressees.replace("[","").replace("]","")
-			# print(v["reference"],"adressees",addressees)
+			labelled_data=labelled_data.replace("[","").replace("]","")
+			# print(v["reference"],label_id,labelled_data)
 		else :
-			# print("no addressees found for:",v["reference"])
+			# print(v["reference"],"no labelled_data found for:",v[label_id])
 			## no action to be taken, just carry on
 			pass;
 	## return statement sets the new column in our DataFrame to the value extracted from the description field.
 	else :
-		# print("no match object for",v["reference"])
-		addressees=None
-	return addressees;
+		print("no match object for",v["reference"],label_id)
+		labelled_data=None
+	return labelled_data;
 
 ## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
 ## if a parameter is used with several different values (as in the first URL), the multiple values are expressed as Python list as in the first example.
@@ -147,7 +148,9 @@ with open("response.json","w",encoding="utf-8") as responseout :
 ## and also places is already pulled out as a separate field in the JSON data, so we might as well take it, rather than needing to pull it out of the description separately
 df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]);
 
-df["addressees"]=df.apply(get_addressees,axis=1)
+for label_id in desc_fields.groupindex.keys() :
+	print("label_id:",label_id)
+	df[label_id]=df.apply(get_labelled_data,axis=1,args=(label_id,))
 
 ## If you're intending to load csv file into Excel, switch the commenting of the two following lines to get Windows encoding (change cp1252 to appropriate value based on locale)
 ## Can find the current preferred locale with import locale; locale.getpreferredencoding()
