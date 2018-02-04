@@ -1,4 +1,4 @@
-## This script wraps http GET calls to The National Archives' Discovery API to download catalogue data for a give search on the SearchRecords API endpoint.
+## This script wraps http GET calls to The National Archives' Discovery API to download catalogue data for a given search on the SearchRecords API endpoint.
 ## To understand the parameters being used, and the data structure used, try out the Sandbox.
 ## This script expects a response as application/json, application/xml is also available from the endpoint.
 ## http://discovery.nationalarchives.gov.uk/API/sandbox/index#!/SearchRecords/SearchRecords_GetRecords
