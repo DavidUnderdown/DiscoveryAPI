@@ -17,7 +17,15 @@ import pandas as pd;  #version 0.22.0, data analysis package, gives us "super sp
 ## prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
 ## used in get_addressees function defined below.
-# desc_fields=re.compile("(Petitioners:( )?(?P<petitioners>.*\. ))?(Name\(s\): (?P<names>.*\. ))?(Addressees: (?P<addressees>.*\. ))?(Occupation: (?P<occupation>.*\. ))?(Nature of request: (?P<nature_of_request>.*\. ))?(Nature of endorsement: (?P<nature_of_endorsement>.*\. ))?(Places mentioned: (?P<places_mentioned>.*\. ))?(People mentioned: (?P<people_mentioned>.*\. ))?")
+## Essentially for each label in the description we wrap it and its associated text within a high level group, denoted by brackets, as a specific label is not guaranteed to appear in every
+## description, after this we put a question mark to indicate this, within that the regex consists of the label itself, followed by a colon and a space (I've occasionally found the space 
+## has been missing, so if you get unexpected results, trying making the space optional (as on Petitioners below.  Then for the descriptive text relating to a label, we wrap it in another group
+## this time using the option to name it (?P<some_name>.*?) the . matches any/all characters following, * says repeated an unknown number of times and ? tells the * not to be "greedy",
+## otherwise the first matching label would grab all the rest of the text.  As we expect each bit of text to end with a full stop (period) and a space, outside the named group, but inside the
+## overall group for the label we say there's a full stop followed by a space \. (here we have to escape the . with \ as we want to match literally the . character, not any character.
+## Then we just put the blocks for each label following th efirst one in the expected order of appearance.
+## So for example label "Label":
+##		(Label: (?P<label>.*?)\. )?
 desc_fields=re.compile("(Petitioners:( )?(?P<petitioners>.*?)\. )?(Name\(s\): (?P<names>.*?)\. )?(Addressees: (?P<addressees>.*?)\. )?(Occupation: (?P<occupation>.*?)\. )?(Nature of request: (?P<nature_of_request>.*?)\. )?(Nature of endorsement: (?P<nature_of_endorsement>.*?)\. )?(Places mentioned: (?P<places_mentioned>.*?)\. )?(People mentioned: (?P<people_mentioned>.*?)\. )?")
 
 def get_addressees(v) :
