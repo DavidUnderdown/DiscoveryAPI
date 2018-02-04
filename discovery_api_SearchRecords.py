@@ -26,7 +26,27 @@ import pandas as pd;  #version 0.22.0, data analysis package, gives us "super sp
 ## Then we just put the blocks for each label following th efirst one in the expected order of appearance.
 ## So for example label "Label":
 ##		(Label: (?P<label>.*?)\. )?
-desc_fields=re.compile("(Petitioners:( )?(?P<petitioners>.*?)\. )?(Name\(s\): (?P<names>.*?)\. )?(Addressees: (?P<addressees>.*?)\. )?(Occupation: (?P<occupation>.*?)\. )?(Nature of request: (?P<nature_of_request>.*?)\. )?(Nature of endorsement: (?P<nature_of_endorsement>.*?)\. )?(Places mentioned: (?P<places_mentioned>.*?)\. )?(People mentioned: (?P<people_mentioned>.*?)\. )?")
+
+## Originally did this manually: desc_fields=re.compile("(Petitioners:( )?(?P<petitioners>.*?)\. )?(Name\(s\): (?P<names>.*?)\. )?(Addressees: (?P<addressees>.*?)\. )?(Occupation: (?P<occupation>.*?)\. )?(Nature of request: (?P<nature_of_request>.*?)\. )?(Nature of endorsement: (?P<nature_of_endorsement>.*?)\. )?(Places mentioned: (?P<places_mentioned>.*?)\. )?(People mentioned: (?P<people_mentioned>.*?)\. )?")
+## Now try to build regex automatically from a list of labels:
+labels=["Petitioners","Name(s)","Addressees","Occupation","Nature of request","Nature of endorsement","Places mentioned","People mentioned"]
+## initialise list of the individual regex groups
+descfields_list=[]
+
+## Go through the label list for each label in turn, construct the normalised label id, and construct the high regex group for that label and its related text
+for label in labels :
+	## construct the normalised label_id, add to list of label_ids
+	label_id=label.casefold().replace(" ","_").replace("(","").replace(")","")
+	## construct the group for the label and its associated text
+	relabelgroup=r"("+label+r":( )?"+r"(?P<"+label_id+r">.*?)\. )?"
+	descfields_list.append(relabelgroup)
+
+## Now build the full regex, join the elements of the list into one big string using empty string as the joining character (making each group optional):
+redescfields="".join(descfields_list)
+## And create the compiled regex object (from this we can get the list of label_ids by using desc_fields.groupindex.keys() ).
+desc_fields=re.compile(redescfields)
+## Confirm the regex to be used
+print("regex for extracting data from description:",desc_fields.pattern)
 
 def get_addressees(v) :
 	'''Function used to extract the addressees of petition our of the description field'''
@@ -36,14 +56,17 @@ def get_addressees(v) :
 		addressees=matchdict["addressees"]
 		## if you're not getting expected output, try uncommenting print statements below to see which descriptions are actually matching.
 		if addressees :
-			##tidy up a bit, remove any square brackets used to fill out detail to make data more consistent for analysis
+			## tidy up a bit, remove any square brackets used to fill out detail to make data more consistent for analysis
 			addressees=addressees.replace("[","").replace("]","")
 			# print(v["reference"],"adressees",addressees)
 		else :
-			# print("no addressees found for:",v("reference"))
+			# print("no addressees found for:",v["reference"])
 			## no action to be taken, just carry on
 			pass;
 	## return statement sets the new column in our DataFrame to the value extracted from the description field.
+	else :
+		# print("no match object for",v["reference"])
+		addressees=None
 	return addressees;
 
 ## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -127,5 +150,6 @@ df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate",
 df["addressees"]=df.apply(get_addressees,axis=1)
 
 ## If you're intending to load csv file into Excel, switch the commenting of the two following lines to get Windows encoding (change cp1252 to appropriate value based on locale)
+## Can find the current preferred locale with import locale; locale.getpreferredencoding()
 #df.to_csv("myRecords.csv",index=False,encoding="cp1252");
 df.to_csv("myRecords.csv",index=False,encoding="utf-8");
