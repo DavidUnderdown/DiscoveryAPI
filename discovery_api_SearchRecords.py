@@ -38,7 +38,7 @@ for label in labels :
 	## construct the normalised label_id, add to list of label_ids
 	label_id=label.casefold().replace(" ","_").replace("(","").replace(")","")
 	## construct the group for the label and its associated text, if there are brackets in the label name, escape them - might need to extend this to escape other regex metacharacters.
-	escaped_label=label.replace("(",r"\(").replace(")",r"\)")
+	escaped_label=regex.escape(label)
 	relabelgroup=r"("+escaped_label+r":( )?"+r"(?P<"+label_id+r">.*?)(\. |$))?"
 	descfields_list.append(relabelgroup)
 
@@ -82,6 +82,8 @@ def no_extracted_data(v) :
 	for label_id in desc_fields.groupindex.keys() :
 		if v[label_id] :
 			no_extracted_data=False
+	if no_extracted_data :
+		print("no data extracted from description for",v["reference"],v["description"])
 	return no_extracted_data
 
 ## Now construct the API call.
