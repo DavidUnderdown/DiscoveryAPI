@@ -49,11 +49,17 @@ desc_fields=regex.compile(redescfields, flags=regex.POSIX|regex.VERSION1)   ## r
 ## Confirm the regex to be used
 print("regex for extracting data from description:",desc_fields.pattern)
 
+def search_for_match(v) :
+	'''Find match for each row (to be saved in temporary column in DataFrame)'''
+	match=desc_fields.search(v["description"])
+	
+	return match
+
 def get_labelled_data(v,label_id) :
 	'''Function used to extract the data associated with a given label used in the description field'''
-	match=desc_fields.search(v["description"])
-	if match :
-		matchdict=match.groupdict()
+	# match=desc_fields.search(v["description"])
+	if v["match"] :
+		matchdict=v["match"].groupdict()
 		labelled_data=matchdict[label_id]
 		## if you're not getting expected output, try uncommenting print statements below to see which descriptions are actually matching.
 		if labelled_data :
@@ -69,6 +75,14 @@ def get_labelled_data(v,label_id) :
 		print("no match object for",v["reference"],label_id)
 		labelled_data=None
 	return labelled_data;
+
+def no_extracted_data(v) :
+	'''Check for rows which don't seem to have any extracted data'''
+	no_extracted_data=True
+	for label_id in desc_fields.groupindex.keys() :
+		if v[label_id] :
+			no_extracted_data=False
+	return no_extracted_data
 
 ## Now construct the API call.
 ## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -149,9 +163,20 @@ with open("response.json","w",encoding="utf-8") as responseout :
 ## and also places is already pulled out as a separate field in the JSON data, so we might as well take it, though the regex will also pull it out of the description separately
 df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]);
 
+## Apply data extraction regex to each description in turn, save resulting "match object" to new column
+print("Finding regex matches")
+df["match"]=df.apply(search_for_match,axis=1)
+
+## For each label_id, pull out the related data into a new column
 for label_id in desc_fields.groupindex.keys() :
 	print("label_id:",label_id)
 	df[label_id]=df.apply(get_labelled_data,axis=1,args=(label_id,))
+
+## Look for rows that seem to have no data extracted at all.
+df["no_extracted_data"]=df.apply(no_extracted_data,axis=1)
+
+## Match object doesn't give us anything useful to include in overall output so delete the column, keeping everything else in original dataframe.
+df.drop(labels="match", axis=1, inplace=True)
 
 ## If you're intending to load csv file into Excel, switch the commenting of the two following lines to get Windows encoding (change cp1252 to appropriate value based on locale)
 ## Can find the current preferred locale with import locale; locale.getpreferredencoding()
