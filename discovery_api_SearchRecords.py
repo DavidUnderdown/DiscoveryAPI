@@ -9,6 +9,7 @@
 ## Python standard libraries used, using Python 3.6.4:
 import copy;
 import pprint;
+import string;
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
@@ -36,8 +37,16 @@ descfields_list=[]
 ## Go through the label list for each label in turn, construct a normalised label id, and construct the high level regex group for that label and its related text
 for label in labels :
 	## construct the normalised label_id, add to list of label_ids
-	label_id=label.casefold().replace(" ","_").replace("(","").replace(")","")
-	## construct the group for the label and its associated text, if there are brackets in the label name, escape them - might need to extend this to escape other regex metacharacters.
+	label_id=label
+	## remove punctuation characters
+	for char in string.punctuation :
+		label_id=label_id.replace(char,"")
+	## replace whitespace characters with underscore
+	for char in string.whitespace :
+		label_id=label_id.replace(char,"_")
+	## casefold, to lower case as aggressively as possible as defined in Unicode
+	label_id=label_id.casefold()
+	## construct the group for the label and its associated text, make sure any regex metacharacters are escaped to avoid unexpected results.
 	escaped_label=regex.escape(label)
 	relabelgroup=r"("+escaped_label+r":( )?"+r"(?P<"+label_id+r">.*?)(\. |$))?"
 	descfields_list.append(relabelgroup)
