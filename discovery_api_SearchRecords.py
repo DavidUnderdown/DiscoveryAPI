@@ -34,8 +34,13 @@ labels=["Petitioners","Name(s)","Addressees","Occupation","Nature of request","N
 ## initialise list of the individual regex groups
 descfields_list=[]
 
+## as part of checking if we have all labels, will be useful to know length of longest supplied label
+longest_label_length=0
+
 ## Go through the label list for each label in turn, construct a normalised label id, and construct the high level regex group for that label and its related text
 for label in labels :
+	if len(label) > longest_label_length :
+		longest_label_length=len(label)
 	## construct the normalised label_id, add to list of label_ids
 	label_id=label
 	## remove punctuation characters
@@ -57,6 +62,7 @@ redescfields="".join(descfields_list)
 desc_fields=regex.compile(redescfields, flags=regex.POSIX|regex.VERSION1)   ## revised version using regex library to get left longest match using POSIX flag under VERSION1
 ## Confirm the regex to be used
 print("regex for extracting data from description:",desc_fields.pattern)
+# label_start=regex.compile(r"(?r)(?<start>:|(. )|\[|\])")
 
 def search_for_match(v) :
 	'''Find match for each row (to be saved in temporary column in DataFrame)'''
@@ -94,6 +100,32 @@ def no_extracted_data(v) :
 	if no_extracted_data :
 		print("no data extracted from description for",v["reference"],v["description"])
 	return no_extracted_data
+
+def other_possible_labels(v) :
+	desc_without_known_labels=v["description"]
+	other_possible_labels=[]
+	for label in labels :
+		desc_without_known_labels=desc_without_known_labels.replace(label+":","")
+	max_possible_other_labels=desc_without_known_labels.count(":")
+	if max_possible_other_labels > 0 :
+		start_pos=0
+		for i in range(max_possible_other_labels) :
+			colon_pos=desc_without_known_labels.find(":",start_pos)
+			start_pos=colon_pos+1
+			# begin_label_slice=max(0,colon_pos-longest_label_length)
+			# match=label_start.search(desc_without_known_labels,colon_pos-1)
+			# if match :
+				# begin_label_slice=match.end("start")
+				# print(str(begin_label_slice),str(colon_pos))
+			begin_label_slice=max(desc_without_known_labels.rfind(".",0,colon_pos-1),desc_without_known_labels.rfind("[",0,colon_pos-1))
+			print(str(begin_label_slice),str(colon_pos-1))
+			new_label_candidate=desc_without_known_labels[begin_label_slice:colon_pos].strip("".join((string.whitespace,string.punctuation,string.digits)))
+			other_possible_labels.append(new_label_candidate)
+	if len(other_possible_labels) > 0 :
+		print("Additional possible data labels found in",v["reference"],str(other_possible_labels))
+		return other_possible_labels
+	else :
+		return None
 
 ## Now construct the API call.
 ## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -185,6 +217,9 @@ for label_id in desc_fields.groupindex.keys() :
 
 ## Look for rows that seem to have no data extracted at all.
 df["no_extracted_data"]=df.apply(no_extracted_data,axis=1)
+
+## check for any other possible labels in text that we didn't include in original list of labels
+df["other_possible_labels"]=df.apply(other_possible_labels,axis=1)
 
 ## Match object doesn't give us anything useful to include in overall output so delete the column, keeping everything else in original dataframe.
 df.drop(labels="match", axis=1, inplace=True)
