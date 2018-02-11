@@ -9,11 +9,10 @@
 ## Python standard libraries used, using Python 3.6.4:
 import copy;
 import pprint;
-# import re; # replaced with regex below
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
-import regex as re;   #version 2018.2.8
+import regex;   #version 2018.2.8, third party regex library, API same as re built-in library, but additional flags and options which are needed
 
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
@@ -46,8 +45,7 @@ for label in labels :
 ## Now build the full regex, join the elements of the list into one big string using empty string as the joining character (making each group optional):
 redescfields="".join(descfields_list)
 ## And create the compiled regex object (from this we can get the list of label_ids by using desc_fields.groupindex.keys() ).
-# desc_fields=re.compile(redescfields) ## original version using Python library re
-desc_fields=re.compile(redescfields, flags=re.POSIX|re.VERSION1)   ## revised version using regex library to get left longest match
+desc_fields=regex.compile(redescfields, flags=regex.POSIX|regex.VERSION1)   ## revised version using regex library to get left longest match using POSIX flag under VERSION1
 ## Confirm the regex to be used
 print("regex for extracting data from description:",desc_fields.pattern)
 
