@@ -9,10 +9,11 @@
 ## Python standard libraries used, using Python 3.6.4:
 import copy;
 import pprint;
-import re;
+# import re; # replaced with regex below
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
+import regex as re;   #version 2018.2.8
 
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
@@ -39,13 +40,14 @@ for label in labels :
 	label_id=label.casefold().replace(" ","_").replace("(","").replace(")","")
 	## construct the group for the label and its associated text, if there are brackets in the label name, escape them - might need to extend this to escape other regex metacharacters.
 	escaped_label=label.replace("(",r"\(").replace(")",r"\)")
-	relabelgroup=r"("+escaped_label+r":( )?"+r"(?P<"+label_id+r">.*?)\. )?"
+	relabelgroup=r"("+escaped_label+r":( )?"+r"(?P<"+label_id+r">.*?)(\. |$))?"
 	descfields_list.append(relabelgroup)
 
 ## Now build the full regex, join the elements of the list into one big string using empty string as the joining character (making each group optional):
 redescfields="".join(descfields_list)
 ## And create the compiled regex object (from this we can get the list of label_ids by using desc_fields.groupindex.keys() ).
-desc_fields=re.compile(redescfields)
+# desc_fields=re.compile(redescfields) ## original version using Python library re
+desc_fields=re.compile(redescfields, flags=re.POSIX|re.VERSION1)   ## revised version using regex library to get left longest match
 ## Confirm the regex to be used
 print("regex for extracting data from description:",desc_fields.pattern)
 
