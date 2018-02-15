@@ -1,5 +1,11 @@
 version 1.1
 @totalColumns 35
+/*---------------------------------------------------------------------------------------------------\
+| Uses CSV Schema language 1.1 http://digital-preservation.github.io/csv-schema/csv-schema-1.1.html  |
+| To define valid csv for a file like discovery_api_SearchRecords_input_params.csv to be used as     |
+| inputs for the discovery_api_SearchRecords.py script which access the Search Records endpoint of   |
+| the API for The National Archives' catalogue, Discovery.                                           |
+\---------------------------------------------------------------------------------------------------*/
 "sps.recordSeries": regex("[A-Z]{1,5}( |/)?[1-9][0-9]{0,4}(,[A-Z]{1,5}( )?[1-9][0-9]{0,4})*") @optional @ignoreCase
 //as this can probably include series not held at TNA this regex may be too restrictive, assumes comma is used as separator for multiple series
 "sps.references": regex("[A-Z0-9/\.,]*") @optional  @ignoreCase
