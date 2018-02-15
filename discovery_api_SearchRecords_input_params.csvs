@@ -1,0 +1,53 @@
+version 1.1
+@totalColumns 35
+"sps.recordSeries": regex("[A-Z]{1,5}( |/)?[1-9][0-9]{0,4}(,[A-Z]{1,5}( )?[1-9][0-9]{0,4})*") @optional @ignoreCase
+//as this can probably include series not held at TNA this regex may be too restrictive, assumes comma is used as separator for multiple series
+"sps.references": regex("[A-Z0-9/\.,]*") @optional  @ignoreCase
+//again this maybe too restrictive for various types of former reference etc, multiple references expected to be separated by commas
+"sps.recordCollections": regex("^((All)|(Records)|(DigitisedRecords)|(NRARecords)|(A2ARecords))(,(All)|(Records)|(DigitisedRecords)|(NRARecords)|(A2ARecords)){0,4}$") @optional @ignoreCase
+//blank defaults to All, separata multiple values with a comma
+"sps.dateFrom": xDate @optional //yyyy-mm-dd
+"sps.dateTo": xDate @optional //yyyy-mm-dd
+"sps.timePeriods": any("0","0-1000","1000-1100","1100-1200","1200-1300","1300-1400","1400-1500","1500-1600","1600-1700","1700-1800","1800-1900","1900-1925","1925-1950","1950") or regex("^(0|(1[0-9][025][05])\-(1[0-9][025][05]))(,0|(1[0-9][025][05])\-(1[0-9][025][05])){0,13}$") @optional
+//blank or one or more of these ranges - the upper bound is exclusive, so that the ranges do not overlap, comma used to separate multiple entries
+"sps.recordRepositories": if(positiveInteger,range(1,2970),regex("[1-9]||([12][0-9]{2})|([12][0-9]{3})")) @optional //Archon reference eg 66 is TNA
+"sps.departments": regex("[A-Z]{1,5}(,[A-Z]{1,5})*") @optional @ignoreCase
+//Departments defined in the TNA catalogue - only relevant to documents held by TNA, comma used to separate multiple values
+"sps.taxonomySubjects": regex("^C10[01][0-9][0-9](,C10[01][0-9][0-9]){0,135}$") @optional @ignoreCase
+//range is actually (currently) C10001 to C10136, comma used to separate multiple values
+"sps.catalogueLevels": regex("^((Level1)|(Level2)|(Level3)|(Level4)|(Level5)|(Level6)|(Level7)|(Level8)|(Level9)|(Level10)|(Level11)|(NotStated))(,(Level1)|(Level2)|(Level3)|(Level4)|(Level5)|(Level6)|(Level7)|(Level8)|(Level9)|(Level10)|(Level11)|(NotStated)){0,11}") @optional @ignoreCase
+//Levels 1-7 are used in the main TNA catalogue (Department, Division, Series, Subseries, Subsubseries, Piece, Item), comma used to separate multiple values
+"sps.closureStatuses": if(length(1),any("O","C","R","P"),regex("(O|C|R|P)(,(O|C|R|P)){0,3}")) @optional @ignoreCase
+//Open, Closed, Retained, Partially Opened (last only used for Home Guard records WO 409)
+"sps.corporateNames":
+//no real validation possible on this field - only applicable to certain former DocumentsOnline content,
+//and to record creating bodies described in catalogue (authority records), (including regiments/corps on medal index cards?)
+"sps.heldByCode": any("ALL","TNA","OTH") @optional @ignoreCase //blank is equivalent to ALL
+"sps.documentType": //no real validation possible on this field - only applicable to certain former DocumentsOnline content
+"sps.titleName": //no real validation possible on this field - only applicable to certain former DocumentsOnline content
+"sps.firstName": //no real validation possible on this field - only applicable to certain former DocumentsOnline content
+"sps.lastName": //no real validation possible on this field - only applicable to certain former DocumentsOnline content
+"sps.dateOfBirthFrom": xDate @optional //only applicable to certain former DocumentsOnline content
+"sps.dateOfBirthTo": xDate @optional //only applicable to certain former DocumentsOnline content
+"sps.number":  //no real validation possible on this field for regimental or similar service numbers - only applicable to certain former DocumentsOnline content
+"sps.occupation": //no real validation possible on this field - only applicable to certain former DocumentsOnline content
+"sps.recordPlace":  //no real validation possible on this field for place of birth - only applicable to certain former DocumentsOnline content
+"sps.oldCountyName": //no real validation possible on this field - only applicable to Manorial records
+"sps.townName": //no real validation possible on this field - only applicable to Manorial records and some former DocumentsOnline content
+"sps.recordOpeningFromDate": xDate @optional //earliest date of range in which record was opened
+"sps.recordOpeningToDate":  xDate @optional //latest date of range in which record was opened
+"sps.referenceFirstLetter": regex("[A-Z]") @optional @ignoreCase
+//Catalogue Reference first letter filter. Enabled when only when sorting by Reference in {SortByOption} and number of results is less then 10,000
+"sps.searchRestrictionFields": regex("[A-Za-z ]{5,20}(,[A-Za-z ]{5,20})*") @optional
+//Restrict search to particular catalogue fields, might be possible to construct list of options, comma separates multiple entries
+"sps.searchQuery": notEmpty
+//mandatory, at simplest just use the wildcard *. May contain boolean expressions, i.e. AND, OR, NOT, quotations marks, brackets and search terms
+"sps.returnHighlighted": any("true","false") @ignoreCase @optional
+"sps.sortByOption": any("RELEVANCE","REFERENCE_ASCENDING","DATE_ASCENDING","DATE_DESCENDING","TITLE_ASCENDING","TITLE_DESCENDING") @ignoreCase @optional
+//"sps.page": range(0,100)
+//as we use the deep paging method by initialising sps.batchStartMark to * use of the sps.page parameter has not been implemented in the script.
+"sps.resultsPageSize": range(0,1000) @optional //using 0 or leaving blank gets the default of 15 records per page
+"sps.titleFirstLetter": regex("[A-Z]") @optional
+"sps.batchStartMark": is("*") @optional //using the asterisk enables deep paging and the script will continue getting records until all relevant have been fetched
+//parameter_separator: //may add this later, but it would mean changing some of the validation above
+labels: regex("^[A-Za-z \(\)]*$") //basic validation based on labels encountered so far
