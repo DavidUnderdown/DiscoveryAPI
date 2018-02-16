@@ -40,12 +40,14 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	dictParamsReader=csv.DictReader(csvParamsIn)
 	
 	for row in dictParamsReader :
-		## if there is a "labels" column in the input CSV, and that actually has some content
+		## if there is a "labels" column in the input CSV, and that actually has some content, break up into list by splitting on commas
 		if "labels" in row and row["labels"] :
 			labels=row.pop("labels").split(",")
-			## initialise list of the individual regex groups
 		else :
+			## otherwise just create an empty list
 			labels=[]
+		
+		## initialise list for the individual regex groups that will be created from the label list
 		descfields_list=[]
 
 		## Go through the label list for each label in turn, construct a normalised label id, and construct the high level regex group for that label and its related text
