@@ -35,7 +35,15 @@ import regex;   #version 2018.2.8, third party regex library, API same as re bui
 ##labels=["Petitioners","Name(s)","Addressees","Occupation","Nature of request","Nature of endorsement","Places mentioned","People mentioned"]
 ## Now take labels from CSV file
 # paramsIn="discovery_api_SearchRecords_input_params.csv"
-paramsIn=pathlib.Path(input("Enter file path or name for CSV input file (or drag and drop)").strip('"'))
+paramsIn=pathlib.Path(input("Enter file path or name for CSV input file (or drag and drop): ").strip('"'))
+
+## check we've got a valid path, if not raise error and exit script
+try :
+	paramsIn.resolve(strict=True)
+except FileNotFoundError:
+	print("Cannot find specified input file, script will exit with error")
+	raise;
+
 with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	dictParamsReader=csv.DictReader(csvParamsIn)
 	
