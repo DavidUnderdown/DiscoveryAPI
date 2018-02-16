@@ -33,9 +33,13 @@ import regex;   #version 2018.2.8, third party regex library, API same as re bui
 ## Originally did this manually: desc_fields=re.compile("(Petitioners:( )?(?P<petitioners>.*?)\. )?(Name\(s\): (?P<names>.*?)\. )?(Addressees: (?P<addressees>.*?)\. )?(Occupation: (?P<occupation>.*?)\. )?(Nature of request: (?P<nature_of_request>.*?)\. )?(Nature of endorsement: (?P<nature_of_endorsement>.*?)\. )?(Places mentioned: (?P<places_mentioned>.*?)\. )?(People mentioned: (?P<people_mentioned>.*?)\. )?")
 ## Now try to build regex automatically from a list of labels:
 ##labels=["Petitioners","Name(s)","Addressees","Occupation","Nature of request","Nature of endorsement","Places mentioned","People mentioned"]
-## Now take labels from CSV file
-# paramsIn="discovery_api_SearchRecords_input_params.csv"
-paramsIn=pathlib.Path(input("Enter file path or name for CSV input file (or drag and drop): ").strip('"'))
+
+## Now take labels from CSV file, input at command line
+inputFile=input("Enter file path or name for CSV input file (or drag and drop), hit enter for default file: ").strip('"')
+## If no name given default to original fixed input
+if not inputFile :
+	inputFile="discovery_api_SearchRecords_input_params.csv"
+paramsIn=pathlib.Path(inputFile)
 
 ## check we've got a valid path, if not raise error and exit script
 try :
