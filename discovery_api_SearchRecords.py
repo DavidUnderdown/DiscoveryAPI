@@ -11,6 +11,7 @@ import copy;
 import pprint;
 import string;
 import csv;
+import pathlib;
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
@@ -33,7 +34,9 @@ import regex;   #version 2018.2.8, third party regex library, API same as re bui
 ## Now try to build regex automatically from a list of labels:
 ##labels=["Petitioners","Name(s)","Addressees","Occupation","Nature of request","Nature of endorsement","Places mentioned","People mentioned"]
 ## Now take labels from CSV file
-with open("discovery_api_SearchRecords_input_params.csv",mode="r",newline='') as csvParamsIn :
+# paramsIn="discovery_api_SearchRecords_input_params.csv"
+paramsIn=pathlib.Path(input("Enter file path or name for CSV input file (or drag and drop)").strip('"'))
+with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	dictParamsReader=csv.DictReader(csvParamsIn)
 	
 	for row in dictParamsReader :
