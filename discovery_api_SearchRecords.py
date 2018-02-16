@@ -199,8 +199,12 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 
 		## So we can see progress, print out original value for batchStartMark, the returned value for batchStartMark, and the number of records returned by this request
 		print(myparams["sps.batchStartMark"],rjson["nextBatchMark"],str(len(rjson["records"])))
-		## Open a file to write the json response out into (will automatically be closed once we've processed all requests), reasonably nicely formatted using pprint = pretty print
-		with open("response.json","w",encoding="utf-8") as responseout :
+		
+		debug = False
+		## Having developed the rest of the script, don't really need the JSON written out, but may be useful for debugging, so keep code
+		if debug :
+			## Open a file to write the json response out into (will automatically be closed once we've processed all requests), reasonably nicely formatted using pprint = pretty print
+			responseout=open("response.json","w",encoding="utf-8")
 			## by default, write out just the records portion included in the returned data. Swap which of the two lines immediately below is commented to write out the whole response
 			# responseout.write(pprint.pformat(rjson))
 			responseout.write(pprint.pformat(myRecords))
@@ -208,30 +212,32 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			##Uncomment the following line to also show the output in the command line window
 			# pprint.pprint(rjson)
 			
-			## Keep requesting data until we have retrieved all records, at that point the nextBatchMark is not updated, so the value used for the call will match the returned value
-			while (myparams["sps.batchStartMark"] != rjson["nextBatchMark"] and myparams["sps.batchStartMark"] != "null" ):
-				## Update the parameter set with the returned value for nextBatchMark so we can get the next portion of data with our next request
-				myparams["sps.batchStartMark"]=rjson["nextBatchMark"]
-				
-				## Make our next GET request
-				r=s.get(url, headers=headers, params=myparams);
-				
-				## Again, decode the JSON returned
-				rjson=r.json()
-				
-				## Add the whole new set of records that have been returned to our master list
-				myRecords.extend(rjson["records"])
-				
-				## so we can see progress, print out original value for batchStartMark, the returned value for batchStartMark, and the number of records returned by this request
-				print(myparams["sps.batchStartMark"],rjson["nextBatchMark"],str(len(rjson["records"])))
-				
-				## by default, write out just the records portion included in the returned data. Swap which of the two lines immediately below is commented to write out the whole response
-				# responseout.write(pprint.pformat(rjson))
+		## Keep requesting data until we have retrieved all records, at that point the nextBatchMark is not updated, so the value used for the call will match the returned value
+		while (myparams["sps.batchStartMark"] != rjson["nextBatchMark"] and myparams["sps.batchStartMark"] != "null" ):
+			## Update the parameter set with the returned value for nextBatchMark so we can get the next portion of data with our next request
+			myparams["sps.batchStartMark"]=rjson["nextBatchMark"]
+			
+			## Make our next GET request
+			r=s.get(url, headers=headers, params=myparams);
+			
+			## Again, decode the JSON returned
+			rjson=r.json()
+			
+			## Add the whole new set of records that have been returned to our master list
+			myRecords.extend(rjson["records"])
+			
+			## so we can see progress, print out original value for batchStartMark, the returned value for batchStartMark, and the number of records returned by this request
+			print(myparams["sps.batchStartMark"],rjson["nextBatchMark"],str(len(rjson["records"])))
+			
+			## by default, write out just the records portion included in the returned data. Swap which of the two lines immediately below is commented to write out the whole response
+			# responseout.write(pprint.pformat(rjson))
+			if debug :
 				responseout.write(pprint.pformat(myRecords))
 				
 				##Uncomment the following line to also show the output in the command line window
 				# pprint.pprint(rjson)
-
+		if debug :
+			responseout.close()
 		## Now create our equivalent of a spreadsheet, called a DataFrame.  Select just the fields we're interested in: compared to the original analysis we're also keeping
 		## the machine readable versions of the covering date "startDate","endDate","numStartDate","numEndDate" which should make date related questions easier to handle,
 		## and also places is already pulled out as a separate field in the JSON data, so we might as well take it, though the regex will also pull it out of the description separately
