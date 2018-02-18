@@ -12,6 +12,7 @@ import pprint;
 import string;
 import csv;
 import pathlib;
+import locale;
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
@@ -90,65 +91,20 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			# label_start=regex.compile(r"(?r)(?<start>:|(. )|\[|\])")
 		else :
 			desc_fields=None
-
-		def search_for_match(v) :
-			'''Find match for each row (to be saved in temporary column in DataFrame)'''
-			match=desc_fields.search(v["description"])
-			
-			return match
-
-		def get_labelled_data(v,label_id) :
-			'''Function used to extract the data associated with a given label used in the description field'''
-			# match=desc_fields.search(v["description"])
-			if v["match"] :
-				matchdict=v["match"].groupdict()
-				labelled_data=matchdict[label_id]
-				## if you're not getting expected output, try uncommenting print statements below to see which descriptions are actually matching.
-				if labelled_data :
-					## tidy up a bit, remove any square brackets used to fill out detail to make data more consistent for analysis
-					labelled_data=labelled_data.replace("[","").replace("]","")
-					# print(v["reference"],label_id,labelled_data)
-				else :
-					# print(v["reference"],"no labelled_data found for:",v[label_id])
-					## no action to be taken, just carry on
-					pass;
-			## return statement sets the new column in our DataFrame to the value extracted from the description field.
+		
+		## Look for other parameters that don't form part of the API call
+		if "output_filepath" in row :
+			if row["output_filepath"] :
+				outpath=libpath.Path(row.pop("output_filepath"))
 			else :
-				print("no match object for",v["reference"],label_id)
-				labelled_data=None
-			return labelled_data;
-
-		def no_extracted_data(v) :
-			'''Check for rows which don't seem to have any extracted data'''
-			no_extracted_data=True
-			for label_id in desc_fields.groupindex.keys() :
-				if v[label_id] :
-					no_extracted_data=False
-			if no_extracted_data :
-				print("no data extracted from description for",v["reference"],v["description"])
-			return no_extracted_data
-
-		def other_possible_labels(v) :
-			desc_without_known_labels=v["description"]
-			other_possible_labels=[]
-			for label in labels :
-				desc_without_known_labels=desc_without_known_labels.replace(label+":","")
-			max_possible_other_labels=desc_without_known_labels.count(":")
-			if max_possible_other_labels > 0 :
-				start_pos=0
-				for i in range(max_possible_other_labels) :
-					colon_pos=desc_without_known_labels.find(":",start_pos)
-					start_pos=colon_pos+1
-					begin_label_slice=max(desc_without_known_labels.rfind(".",0,colon_pos-1),desc_without_known_labels.rfind("[",0,colon_pos-1))
-					print(str(begin_label_slice),str(colon_pos-1))
-					new_label_candidate=desc_without_known_labels[begin_label_slice:colon_pos].strip("".join((string.whitespace,string.punctuation,string.digits)))
-					other_possible_labels.append(new_label_candidate)
-			if len(other_possible_labels) > 0 :
-				print("Additional possible data labels found in",v["reference"],str(other_possible_labels))
-				return other_possible_labels
+				raise RuntimeError("No output file specified")
+		
+		if "output_encoding" in row :
+			if row["output_encoding"] :
+				output_encoding=libpath.Path(row.pop("output_encoding"))
 			else :
-				return None
-
+				output_encoding="utf-8"
+		
 		## Now construct the API call.
 		## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
 		## if a parameter is used with several different values (as in the first URL), the multiple values are expressed as Python list as in the first example.
@@ -245,8 +201,69 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## Now create our equivalent of a spreadsheet, called a DataFrame.  Select just the fields we're interested in: compared to the original analysis we're also keeping
 		## the machine readable versions of the covering date "startDate","endDate","numStartDate","numEndDate" which should make date related questions easier to handle,
 		## and also places is already pulled out as a separate field in the JSON data, so we might as well take it, though the regex will also pull it out of the description separately
-		df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]);
+		
+		## First set up various functions that will do the work of applying the regex and splitting out labelled text.
+		def search_for_match(v) :
+			'''Find match for each row (to be saved in temporary column in DataFrame)'''
+			match=desc_fields.search(v["description"])
+			
+			return match
+		
+		def get_labelled_data(v,label_id) :
+			'''Function used to extract the data associated with a given label used in the description field'''
+			# match=desc_fields.search(v["description"])
+			if v["match"] :
+				matchdict=v["match"].groupdict()
+				labelled_data=matchdict[label_id]
+				## if you're not getting expected output, try uncommenting print statements below to see which descriptions are actually matching.
+				if labelled_data :
+					## tidy up a bit, remove any square brackets used to fill out detail to make data more consistent for analysis
+					labelled_data=labelled_data.replace("[","").replace("]","")
+					# print(v["reference"],label_id,labelled_data)
+				else :
+					# print(v["reference"],"no labelled_data found for:",v[label_id])
+					## no action to be taken, just carry on
+					pass;
+			## return statement sets the new column in our DataFrame to the value extracted from the description field.
+			else :
+				print("no match object for",v["reference"],label_id)
+				labelled_data=None
+			return labelled_data;
 
+		def no_extracted_data(v) :
+			'''Check for rows which don't seem to have any extracted data'''
+			no_extracted_data=True
+			for label_id in desc_fields.groupindex.keys() :
+				if v[label_id] :
+					no_extracted_data=False
+			if no_extracted_data :
+				print("no data extracted from description for",v["reference"],v["description"])
+			return no_extracted_data
+
+		def other_possible_labels(v) :
+			desc_without_known_labels=v["description"]
+			other_possible_labels=[]
+			for label in labels :
+				desc_without_known_labels=desc_without_known_labels.replace(label+":","")
+			max_possible_other_labels=desc_without_known_labels.count(":")
+			if max_possible_other_labels > 0 :
+				start_pos=0
+				for i in range(max_possible_other_labels) :
+					colon_pos=desc_without_known_labels.find(":",start_pos)
+					start_pos=colon_pos+1
+					begin_label_slice=max(desc_without_known_labels.rfind(".",0,colon_pos-1),desc_without_known_labels.rfind("[",0,colon_pos-1))
+					print(str(begin_label_slice),str(colon_pos-1))
+					new_label_candidate=desc_without_known_labels[begin_label_slice:colon_pos].strip("".join((string.whitespace,string.punctuation,string.digits)))
+					other_possible_labels.append(new_label_candidate)
+			if len(other_possible_labels) > 0 :
+				print("Additional possible data labels found in",v["reference"],str(other_possible_labels))
+				return other_possible_labels
+			else :
+				return None
+		
+		## Now create the dataframe with the most important columns from the JSON
+		df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]);
+		
 		## Apply data extraction regex to each description in turn, save resulting "match object" to new column
 		if desc_fields :
 			print("Finding regex matches")
@@ -269,4 +286,4 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## If you're intending to load csv file into Excel, switch the commenting of the two following lines to get Windows encoding (change cp1252 to appropriate value based on locale)
 		## Can find the current preferred locale with import locale; locale.getpreferredencoding()
 		#df.to_csv("myRecords.csv",index=False,encoding="cp1252");
-		df.to_csv("myRecords.csv",index=False,encoding="utf-8");
+		df.to_csv(outpath,index=False,encoding=output_encoding);
