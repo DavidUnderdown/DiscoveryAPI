@@ -16,7 +16,8 @@ import locale;
 ## Additional modules required, use pip install to get these from the PyPI - the Python Package Index (https://pypi.python.org/pypi)
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
-import regex;   #version 2018.2.8, third party regex library, API same as re built-in library, but additional flags and options which are needed
+import regex;         #version 2018.2.8, third party regex library, API same as re built-in library, but additional flags and options which are needed
+import pathvalidate;  #version 0.16.3, sanitiation of file/folder names
 
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
@@ -51,6 +52,7 @@ except FileNotFoundError:
 
 with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	dictParamsReader=csv.DictReader(csvParamsIn)
+	print("CSV input file header row:\n",dictParamsReader.fieldnames)
 	
 	for row in dictParamsReader :
 		## if there is a "labels" column in the input CSV, and that actually has some content, break up into list by splitting on commas
@@ -95,13 +97,40 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## Look for other parameters that don't form part of the API call
 		if "output_filepath" in row :
 			if row["output_filepath"] :
-				outpath=libpath.Path(row.pop("output_filepath"))
+				outpath=pathlib.Path(row["output_filepath"]) #.resolve()
+				print("sanitising input_filepath to ensure interoperability on Windows and *nix")
+				cleanOutpath=None
+				for pathcount, pathpart in enumerate(outpath.parts) :
+					if pathpart == outpath.anchor :
+						cleanOutpath=pathlib.Path(pathpart)
+					else :
+						if cleanOutpath :
+							cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+							cleanOutpath=cleanOutpath / cleanPathPart
+						else :
+							cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+							cleanOutpath=pathlib.Path(cleanPathPart)
+				print(str(cleanOutpath))
+				outpath=cleanOutpath.resolve()
+				print("output filpath set to:",outpath)
+				# strOutputFilepath=row.pop("output_filepath")
+				# if outpath != strOutputFilepath :
+					# print("Path specified in input CSV:",strOutputFilepath,"differs from normalised path:",str(outpath))
+				# print("output path set:",str(outpath))
+				# try :
+					# testanchor=pathlib.Path(outpath.anchor).resolve(strict=True)
+					# print(testanchor)
+				# except FileNotFoundError :
+					# print("Drive or root for specified output filepath does not exist")
+					# raise
 			else :
 				raise RuntimeError("No output file specified")
+		else :
+			raise RuntimeError("No output file specified")
 		
 		if "output_encoding" in row :
 			if row["output_encoding"] :
-				output_encoding=libpath.Path(row.pop("output_encoding"))
+				output_encoding=pathlib.Path(row.pop("output_encoding"))
 			else :
 				output_encoding="utf-8"
 		
