@@ -62,4 +62,4 @@ output_filepath: regex("^[^\*\|,\"\?\<\>]*$") //mandatory
 output_encoding: any("utf-8","LOCALE","cp1252","mac_roman","iso8859_14","ascii") @optional
 //Many more encodings are supported by Python, but as the vast majority of Discovery is in English (some Welsh is used), the set given is probably the most useful.
 //If left blank will default to utf-8, LOCALE will use locale.getpreferredencoding() to get the locally preferred encoding where script is being run.
-//Note that Excel will tend to open CSV files using the computer's locale, so if doing further analysis in Eecel, LOCALE is a good choice
+//Note that Excel will tend to open CSV files using the computer's locale, so if doing further analysis in Excel, LOCALE is a good choice
