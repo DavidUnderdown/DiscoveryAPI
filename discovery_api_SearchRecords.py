@@ -130,7 +130,9 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		
 		if "output_encoding" in row :
 			if row["output_encoding"] :
-				output_encoding=pathlib.Path(row.pop("output_encoding"))
+				output_encoding=row.pop("output_encoding")
+				if output_encoding == "LOCALE" :
+					output_encoding=locale.getpreferredencoding()
 			else :
 				output_encoding="utf-8"
 		
