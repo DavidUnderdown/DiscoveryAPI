@@ -61,6 +61,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		else :
 			## otherwise just create an empty list
 			labels=[]
+			del row["labels"]
 		
 		## initialise list for the individual regex groups that will be created from the label list
 		descfields_list=[]
@@ -97,7 +98,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## Look for other parameters that don't form part of the API call
 		if "output_filepath" in row :
 			if row["output_filepath"] :
-				outpath=pathlib.Path(row["output_filepath"]) #.resolve()
+				outpath=pathlib.Path(row.pop("output_filepath"))
 				print("sanitising input_filepath to ensure interoperability on Windows and *nix")
 				cleanOutpath=None
 				for pathcount, pathpart in enumerate(outpath.parts) :
@@ -141,6 +142,14 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 					output_encoding=locale.getpreferredencoding()
 			else :
 				output_encoding="utf-8"
+				del row["output_encoding"] 
+		
+		if "discovery_columns" in row :
+			if row["discovery_columns"] :
+				discovery_columns=row.pop("discovery_columns").split(",")
+			else :
+				discovery_columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]
+				del row["discovery_columns"]
 		
 		## Now construct the API call.
 		## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -157,9 +166,19 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			if key in row and row[key] :
 				row[key] = row[key].split(",")
 		
+		## Make sure empty keys are set to None, rather than empty string, then they'll be ignored in URL construction
+		## Also look out for any unexpected columns (not starting sps.) in CSV so we can warn and ignore
+		extraKeys=[]
 		for key in row :
 			if row[key] == "" :
 				row[key]=None
+			if not key.startswith("sps.") :
+				extraKeys.append(key)
+				
+		for key in extraKeys :
+			print("unexpected CSV column:",key,". Content will be ignored")
+			row.pop(key)
+			del row[key]
 		
 		myparams=row
 		# print(str(myparams))
@@ -299,7 +318,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				return None
 		
 		## Now create the dataframe with the most important columns from the JSON
-		df=pd.DataFrame(data=myRecords,columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]);
+		df=pd.DataFrame(data=myRecords,columns=discovery_columns);
 		
 		## Apply data extraction regex to each description in turn, save resulting "match object" to new column
 		if desc_fields :
