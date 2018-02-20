@@ -17,7 +17,7 @@ import locale;
 import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
 import regex;         #version 2018.2.8, third party regex library, API same as re built-in library, but additional flags and options which are needed
-import pathvalidate;  #version 0.16.3, sanitiation of file/folder names
+import pathvalidate;  #version 0.16.3, sanitisation of file/folder names
 
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
@@ -105,11 +105,17 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 						cleanOutpath=pathlib.Path(pathpart)
 					else :
 						if cleanOutpath :
-							cleanPathPart=pathvalidate.sanitize_filename(pathpart)
-							cleanOutpath=cleanOutpath / cleanPathPart
+							if (cleanOutpath / pathpart).exists() :
+								cleanOutpath=cleanOutpath/pathpart
+							else :
+								cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+								cleanOutpath=cleanOutpath / cleanPathPart
 						else :
-							cleanPathPart=pathvalidate.sanitize_filename(pathpart)
-							cleanOutpath=pathlib.Path(cleanPathPart)
+							if pathlib.Path(pathpart).exists() :
+								cleanOutpath=pathlib.Path(pathpart)
+							else :
+								cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+								cleanOutpath=pathlib.Path(cleanPathPart)
 				print(str(cleanOutpath))
 				outpath=cleanOutpath.resolve()
 				print("output filpath set to:",outpath)
