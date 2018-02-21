@@ -54,6 +54,10 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	dictParamsReader=csv.DictReader(csvParamsIn)
 	print("CSV input file header row:\n",dictParamsReader.fieldnames)
 	
+	## for multirow input files, keep track 
+	current_output_filepath=None
+	output_filepaths=set()
+	
 	for row in dictParamsReader :
 		## if there is a "labels" column in the input CSV, and that actually has some content, break up into list by splitting on commas
 		if "labels" in row and row["labels"] :
@@ -98,38 +102,35 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## Look for other parameters that don't form part of the API call
 		if "output_filepath" in row :
 			if row["output_filepath"] :
-				outpath=pathlib.Path(row.pop("output_filepath"))
-				print("sanitising input_filepath to ensure interoperability on Windows and *nix")
-				cleanOutpath=None
-				for pathcount, pathpart in enumerate(outpath.parts) :
-					if pathpart == outpath.anchor :
-						cleanOutpath=pathlib.Path(pathpart)
+				if row["output_filepath"].upper() == "APPEND" :
+					if current_output_filepath :
+						outpath=current_output_filepath
 					else :
-						if cleanOutpath :
-							if (cleanOutpath / pathpart).exists() :
-								cleanOutpath=cleanOutpath/pathpart
-							else :
-								cleanPathPart=pathvalidate.sanitize_filename(pathpart)
-								cleanOutpath=cleanOutpath / cleanPathPart
+						raise RuntimeError("Output file specified as 'APPEND' but no valid path given in previous row")
+				else :
+					outpath=pathlib.Path(row.pop("output_filepath"))
+					print("sanitising input_filepath to ensure interoperability on Windows and *nix")
+					cleanOutpath=None
+					for pathcount, pathpart in enumerate(outpath.parts) :
+						if pathpart == outpath.anchor :
+							cleanOutpath=pathlib.Path(pathpart)
 						else :
-							if pathlib.Path(pathpart).exists() :
-								cleanOutpath=pathlib.Path(pathpart)
+							if cleanOutpath :
+								if (cleanOutpath / pathpart).exists() :
+									cleanOutpath=cleanOutpath/pathpart
+								else :
+									cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+									cleanOutpath=cleanOutpath / cleanPathPart
 							else :
-								cleanPathPart=pathvalidate.sanitize_filename(pathpart)
-								cleanOutpath=pathlib.Path(cleanPathPart)
-				print(str(cleanOutpath))
-				outpath=cleanOutpath.resolve()
-				print("output filpath set to:",outpath)
-				# strOutputFilepath=row.pop("output_filepath")
-				# if outpath != strOutputFilepath :
-					# print("Path specified in input CSV:",strOutputFilepath,"differs from normalised path:",str(outpath))
-				# print("output path set:",str(outpath))
-				# try :
-					# testanchor=pathlib.Path(outpath.anchor).resolve(strict=True)
-					# print(testanchor)
-				# except FileNotFoundError :
-					# print("Drive or root for specified output filepath does not exist")
-					# raise
+								if pathlib.Path(pathpart).exists() :
+									cleanOutpath=pathlib.Path(pathpart)
+								else :
+									cleanPathPart=pathvalidate.sanitize_filename(pathpart)
+									cleanOutpath=pathlib.Path(cleanPathPart)
+					print(str(cleanOutpath))
+					outpath=cleanOutpath.resolve()
+					current_output_filepath=outpath
+					print("output filpath set to:",outpath)
 			else :
 				raise RuntimeError("No output file specified")
 		else :
@@ -138,7 +139,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		if "output_encoding" in row :
 			if row["output_encoding"] :
 				output_encoding=row.pop("output_encoding")
-				if output_encoding == "LOCALE" :
+				if output_encoding.upper() == "LOCALE" :
 					output_encoding=locale.getpreferredencoding()
 			else :
 				output_encoding="utf-8"
@@ -339,7 +340,17 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## check for any other possible labels in text that we didn't include in original list of labels
 		df["other_possible_labels"]=df.apply(other_possible_labels,axis=1)
 		
-		## If you're intending to load csv file into Excel, switch the commenting of the two following lines to get Windows encoding (change cp1252 to appropriate value based on locale)
-		## Can find the current preferred locale with import locale; locale.getpreferredencoding()
-		#df.to_csv("myRecords.csv",index=False,encoding="cp1252");
-		df.to_csv(outpath,index=False,encoding=output_encoding);
+		## About to write out file, ensure that parent directories exist (exist=True means the mk_dir won't error if directory already there, parents=True
+		## means all parent directories will also be created if necessary. An error will be raised if there is a file of the same name as a parent directory.
+		outpath.parent.mkdir(exist_ok=True,parents=True)
+		
+		## If output file has already been used, switch file mode to append so we don't overwrite existing data.
+		## Use text encoding from input parameters.
+		if outpath in output_filepaths :
+			outputmode="a"
+		else :
+			outputmode="w"
+		df.to_csv(outpath,index=False,mode=outputmode,encoding=output_encoding);
+		
+		## Make sure the outpath is in the set of used filepaths
+		output_filepaths.add(outpath)

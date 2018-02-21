@@ -57,9 +57,10 @@ version 1.1
 "sps.batchStartMark": is("*") @optional //using the asterisk enables deep paging and the script will continue getting records until all relevant have been fetched
 //parameter_separator: //may add this later, but it would mean changing some of the validation above
 labels: regex("^[A-Za-z \(\)]*(,[A-Za-z \(\)]*)*$") //basic validation based on labels encountered so far
-output_filepath: regex("^[^\*\|,\"\?\<\>]*$") //mandatory
+output_filepath: regex("^[^\*\|,\"\?\<\>]*$") or is("APPEND") @ignoreCase //mandatory
+//keyword append means output will be added to the previously given file path (for the case where there are multiple lines in the input CSV)
 //some validation, note ^ within the square brackets, this means anything except the characters give: characters listed are a bad idea, particularly on Windows
-output_encoding: any("utf-8","LOCALE","cp1252","mac_roman","iso8859_14","ascii") @optional
+output_encoding: any("utf-8","LOCALE","cp1252","mac_roman","iso8859_14","ascii") @optional @ignoreCase
 //Many more encodings are supported by Python, but as the vast majority of Discovery is in English (some Welsh is used), the set given is probably the most useful.
 //If left blank will default to utf-8, LOCALE will use locale.getpreferredencoding() to get the locally preferred encoding where script is being run.
 //Note that Excel will tend to open CSV files using the computer's locale, so if doing further analysis in Excel, LOCALE is a good choice
