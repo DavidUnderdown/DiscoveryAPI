@@ -18,6 +18,8 @@ import requests;      #version 2.18.4, used for connecting to the API
 import pandas as pd;  #version 0.22.0, data analysis package, gives us "super spreadsheet" capabilities, everything Excel can do and more
 import regex;         #version 2018.2.8, third party regex library, API same as re built-in library, but additional flags and options which are needed
 import pathvalidate;  #version 0.16.3, sanitisation of file/folder names
+import xlsxwriter;    #version 1.0.2, for writing out xlsx files (ie Excel 2003 onwards)
+import xlwt;          #version 1.3.0, for writing out xls files (ie Excel 97 and earlier)
 
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
@@ -57,6 +59,8 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	## for multirow input files, keep track 
 	current_output_filepath=None
 	output_filepaths=set()
+	excelWriters={}
+	excelWriterSheets={}
 	
 	for row in dictParamsReader :
 		## if there is a "labels" column in the input CSV, and that actually has some content, break up into list by splitting on commas
@@ -105,6 +109,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				if row["output_filepath"].upper() == "APPEND" :
 					if current_output_filepath :
 						outpath=current_output_filepath
+						row.pop("output_filepath")
 					else :
 						raise RuntimeError("Output file specified as 'APPEND' but no valid path given in previous row")
 				else :
@@ -350,7 +355,23 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			outputmode="a"
 		else :
 			outputmode="w"
-		df.to_csv(outpath,index=False,mode=outputmode,encoding=output_encoding);
+			
+		if outpath.suffix in [".xls",".xlsx"] :
+			if outpath.suffix == ".xls" :
+				excelEngine="xlwt"
+			else :
+				excelEngine="xlsxwriter"
+			if outputmode == "w" :
+				excelWriters[str(outpath)]=pd.ExcelWriter(outpath,engine=excelEngine)
+				excelWriterSheets[str(outpath)]=["Sheet1"]
+				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][0],index=False,encoding=output_encoding)
+			else :
+				excelWriterSheets[str(outpath)].append("Sheet"+str(len(excelWriterSheets[str(outpath)])+1))
+				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][-1],index=False,encoding=output_encoding)
+		else :
+			df.to_csv(outpath,index=False,mode=outputmode,encoding=output_encoding);
 		
 		## Make sure the outpath is in the set of used filepaths
 		output_filepaths.add(outpath)
+for excelWriter in excelWriters :
+	excelWriters[excelWriter].save()
