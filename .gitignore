@@ -3,3 +3,5 @@ response.json
 myRecords.xlsx
 myRecords.xls
 discovery_api_SearchRecords.spec
+build/
+__pycache__/
