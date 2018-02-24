@@ -349,29 +349,40 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## means all parent directories will also be created if necessary. An error will be raised if there is a file of the same name as a parent directory.
 		outpath.parent.mkdir(exist_ok=True,parents=True)
 		
-		## If output file has already been used, switch file mode to append so we don't overwrite existing data.
-		## Use text encoding from input parameters.
+		## If output file has already been used, switch file mode to append so we don't overwrite existing data, or to pick an existing writer
+		## if we're using Excel output.  Excel output will be held in memory until script is about to complete. Use text encoding from input parameters.
 		if outpath in output_filepaths :
 			outputmode="a"
 		else :
 			outputmode="w"
 			
 		if outpath.suffix in [".xls",".xlsx"] :
+			## We want an actual Excel file,not CSV.  Pandas docs suggested engine would be found automagically based on extension, but that didn't seem
+			## to work, so explicitly set engine for ourselves.
 			if outpath.suffix == ".xls" :
 				excelEngine="xlwt"
 			else :
 				excelEngine="xlsxwriter"
 			if outputmode == "w" :
+				## create writer object, linked to the current outpath by using dictionary.
 				excelWriters[str(outpath)]=pd.ExcelWriter(outpath,engine=excelEngine)
+				## Define sheet name for this Discovery output (currently hardcoded to Sheet1), putting it in a list associated with the filepath
 				excelWriterSheets[str(outpath)]=["Sheet1"]
+				## Create Excel output going to the defined writer and sheet
 				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][0],index=False,encoding=output_encoding)
 			else :
+				## We're adding to existing Excel file (in memory), so add a new sheet to the list for the current outpath, currently just Sheetn+1, where n
+				## is the number of sheets already in the list for this outpath
 				excelWriterSheets[str(outpath)].append("Sheet"+str(len(excelWriterSheets[str(outpath)])+1))
+				## Create the Excel sheet on the relevant writer
 				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][-1],index=False,encoding=output_encoding)
 		else :
+			## Any other extension will be treated as plain CSV (could extend to do different dialects eg TSV or, custome separators etc)
 			df.to_csv(outpath,index=False,mode=outputmode,encoding=output_encoding);
 		
 		## Make sure the outpath is in the set of used filepaths
 		output_filepaths.add(outpath)
+
+## Before we shut down, write the content of the ExcelWriters out to file.
 for excelWriter in excelWriters :
 	excelWriters[excelWriter].save()
