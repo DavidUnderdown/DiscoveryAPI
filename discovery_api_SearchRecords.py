@@ -149,6 +149,8 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			else :
 				output_encoding="utf-8"
 				del row["output_encoding"] 
+		else :
+			output_encoding="utf-8"
 		
 		if "discovery_columns" in row :
 			if row["discovery_columns"] :
@@ -156,6 +158,8 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			else :
 				discovery_columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]
 				del row["discovery_columns"]
+		else :
+			discovery_columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]
 		
 		## Now construct the API call.
 		## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
