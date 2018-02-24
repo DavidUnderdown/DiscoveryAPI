@@ -303,13 +303,18 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			return no_extracted_data
 
 		def other_possible_labels(v) :
+			'''Look for any other possible labels within the description by searching for additional colons'''
+			## First remove existing labels from a copy of the description
 			desc_without_known_labels=v["description"]
 			other_possible_labels=[]
 			for label in labels :
 				desc_without_known_labels=desc_without_known_labels.replace(label+":","")
+			## Count how many colons remain in the description text
 			max_possible_other_labels=desc_without_known_labels.count(":")
 			if max_possible_other_labels > 0 :
 				start_pos=0
+				## Now for each colon, work back through the string until we find characters that would normally break up the text, eg square brackets or full
+				## stops and return text between that and the colon position as a possible label, and add to list of possible labels
 				for i in range(max_possible_other_labels) :
 					colon_pos=desc_without_known_labels.find(":",start_pos)
 					start_pos=colon_pos+1
@@ -317,6 +322,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 					print(str(begin_label_slice),str(colon_pos-1))
 					new_label_candidate=desc_without_known_labels[begin_label_slice:colon_pos].strip("".join((string.whitespace,string.punctuation,string.digits)))
 					other_possible_labels.append(new_label_candidate)
+			## if there's anything in the list of possible labels, return the list, otherwise return None.
 			if len(other_possible_labels) > 0 :
 				print("Additional possible data labels found in",v["reference"],str(other_possible_labels))
 				return other_possible_labels
