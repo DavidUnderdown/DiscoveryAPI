@@ -28,8 +28,9 @@ The text encoding to use for the output.  If left blank it will default to UTF-8
 The fields from the Discovery API to include in the output.  If none are given the default of "reference,coveringDates,startDate,endDate,numStartDate,numEndDate,description,id,places" will be assumed.
 
 ##Output
-Output will be written to the output file(s) defined in the input CSV
-The formally released version of the script (ie up to v1.2) will output the full JSON returned by API to a file called response.json (this can be quite large) and the slimmed down CSV file called myRecords.csv.  Again, both of these will simply be written to the current working directory at present.  The latest committed version will only output the JSON if the debug flag in the script is set, and now an output filepath must be specified in the input CSV.  The sample input CSV file still outputs to myRecords.csv.  If you specify a filename ending .xls or .xlsx an appropriate Excel file will be created (the text encoding is still applied).
+Output will be written to the output file(s) defined in the input CSV.  The full JSON response to the API calls is now not called unless the debug flag in the script is set, in this case outptu would still go to to a file called response.json in the current working directory.
+
+The sample input CSV file still outputs to myRecords.csv.  If you specify a filename ending .xls or .xlsx an appropriate Excel file will be created (the text encoding is still applied).
 
 You can now also specify the text encoding for the output CSV in the input CSV.  Simple choices are utf-8, cp1252 etc for Windows encodings (anyother valid Python encoding), or LOCALE, which will cause the preferred encoding set on your computer to be used.  This can be useful if you are intending to open the CSV file in Excel.
 
