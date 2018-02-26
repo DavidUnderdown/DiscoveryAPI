@@ -5,3 +5,4 @@ myRecords.xls
 discovery_api_SearchRecords.spec
 build/
 __pycache__/
+queries/

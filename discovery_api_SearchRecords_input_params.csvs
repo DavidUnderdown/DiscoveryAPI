@@ -1,5 +1,5 @@
 version 1.1
-@totalColumns 38
+@totalColumns 39
 /*---------------------------------------------------------------------------------------------------\
 | Uses CSV Schema language 1.1 http://digital-preservation.github.io/csv-schema/csv-schema-1.1.html  |
 | To define valid csv for a file like discovery_api_SearchRecords_input_params.csv to be used as     |
@@ -56,7 +56,10 @@ version 1.1
 "sps.titleFirstLetter": regex("[A-Z]") @optional
 "sps.batchStartMark": is("*") @optional //using the asterisk enables deep paging and the script will continue getting records until all relevant have been fetched
 //parameter_separator: //may add this later, but it would mean changing some of the validation above
-labels: regex("^[A-Za-z \(\)]*(,[A-Za-z \(\)]*)*$") //basic validation based on labels encountered so far
+labels: if($"regex"/length(1,*),empty,regex("^[A-Za-z \(\)]*(,[A-Za-z \(\)]*)*$")) @optional
+//basic validation based on labels encountered so far, labels should not be used if regex column is used
+"regex": if($labels/length(1,*),empty) //
+//the regex column must be empty if a labels list is provided.  If your regex includes quote marks they will need to be escaped by doubling it ie "" for each
 output_filepath: regex("^[^\*\|,\"\?\<\>]*$") or is("APPEND") @ignoreCase //mandatory
 //keyword append means output will be added to the previously given file path (for the case where there are multiple lines in the input CSV)
 //some validation, note ^ within the square brackets, this means anything except the characters give: characters listed are a bad idea, particularly on Windows
@@ -64,5 +67,8 @@ output_encoding: any("utf-8","LOCALE","cp1252","mac_roman","iso8859_14","ascii")
 //Many more encodings are supported by Python, but as the vast majority of Discovery is in English (some Welsh is used), the set given is probably the most useful.
 //If left blank will default to utf-8, LOCALE will use locale.getpreferredencoding() to get the locally preferred encoding where script is being run.
 //Note that Excel will tend to open CSV files using the computer's locale, so if doing further analysis in Excel, LOCALE is a good choice
-discovery_columns: regex("^[a-z][a-zA-Z]*(,[a-z][a-zA-Z]*)*$")
+discovery_columns: regex("^[a-z][a-zA-Z]*(,[a-z][a-zA-Z]*)*$") @optional
 //list of fields from Discovery to be taken into the dataframe and exported to the final output file, always begins with lower case letter, comma separates field names
+max_records: positiveInteger @optional
+//if this is set record retrieval will stop once specified number of records has been exceeded, due to the paging structure, up to 1000 records more than the 
+//given value may actually be returned.  If blank or 0 value is ignored and all records will be retrieved.

@@ -58,23 +58,28 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 	
 	## for multirow input files, keep track 
 	current_output_filepath=None
+	desc_fields=None
 	output_filepaths=set()
 	excelWriters={}
 	excelWriterSheets={}
 	
 	for row in dictParamsReader :
 		## if there is a "labels" column in the input CSV, and that actually has some content, break up into list by splitting on commas
-		if "labels" in row and row["labels"] :
-			labels=row.pop("labels").split(",")
+		if "labels" in row :
+			if row["labels"] :
+				labels=row.pop("labels").split(",")
+			elif "labels" in row :
+				## otherwise just create an empty list
+				labels=[]
+				del row["labels"]
 		else :
-			## otherwise just create an empty list
 			labels=[]
-			del row["labels"]
 		
 		## initialise list for the individual regex groups that will be created from the label list
 		descfields_list=[]
 
-		## Go through the label list for each label in turn, construct a normalised label id, and construct the high level regex group for that label and its related text
+		## Go through the label list for each label in turn, construct a normalised label id, and construct the high level regex group for that label 
+		## and its related text.  If regex column also set, that will take priority.
 		for label in labels :
 			## construct the normalised label_id, add to list of label_ids
 			label_id=label
@@ -94,12 +99,23 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		## Now build the full regex, join the elements of the list into one big string using empty string as the joining character (making each group optional):
 		redescfields="".join(descfields_list)
 		
+		## if specific regex supplied, compile it, and this will take priority over any label list supplied
+		if "regex" in row :
+			if row["regex"] :
+				desc_fields=regex.compile(row.pop("regex"), flags=regex.POSIX|regex.VERSION1)
+				print("regex for extracting data from description:",desc_fields.pattern)
+			else :
+				del row["regex"]
+		
 		if redescfields :
-			## And create the compiled regex object (from this we can get the list of label_ids by using desc_fields.groupindex.keys() ).
-			desc_fields=regex.compile(redescfields, flags=regex.POSIX|regex.VERSION1)   ## revised version using regex library to get left longest match using POSIX flag under VERSION1
-			## Confirm the regex to be used
-			print("regex for extracting data from description:",desc_fields.pattern)
-			# label_start=regex.compile(r"(?r)(?<start>:|(. )|\[|\])")
+			if not desc_fields :
+				## And create the compiled regex object (from this we can get the list of label_ids by using desc_fields.groupindex.keys() ).
+				desc_fields=regex.compile(redescfields, flags=regex.POSIX|regex.VERSION1)   ## revised version using regex library to get left longest match using POSIX flag under VERSION1
+				## Confirm the regex to be used
+				print("regex for extracting data from description:",desc_fields.pattern)
+				# label_start=regex.compile(r"(?r)(?<start>:|(. )|\[|\])")
+		elif desc_fields :
+			pass;
 		else :
 			desc_fields=None
 		
@@ -160,6 +176,13 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				del row["discovery_columns"]
 		else :
 			discovery_columns=["reference","coveringDates","startDate","endDate","numStartDate","numEndDate","description","id","places"]
+		
+		if "max_records" in row :
+			if row["max_records"] :
+				max_records=int(row.pop("max_records"))
+			else :
+				max_records=0
+				del row["max_records"] 
 		
 		## Now construct the API call.
 		## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -239,7 +262,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			# pprint.pprint(rjson)
 			
 		## Keep requesting data until we have retrieved all records, at that point the nextBatchMark is not updated, so the value used for the call will match the returned value
-		while (myparams["sps.batchStartMark"] != rjson["nextBatchMark"] and myparams["sps.batchStartMark"] != "null" ):
+		while (myparams["sps.batchStartMark"] != rjson["nextBatchMark"] and myparams["sps.batchStartMark"] != "null" ) and (max_records==0 or int(rjson["count"]) < max_records) :
 			## Update the parameter set with the returned value for nextBatchMark so we can get the next portion of data with our next request
 			myparams["sps.batchStartMark"]=rjson["nextBatchMark"]
 			
@@ -334,6 +357,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				return None
 		
 		## Now create the dataframe with the most important columns from the JSON
+		
 		df=pd.DataFrame(data=myRecords,columns=discovery_columns);
 		
 		## Apply data extraction regex to each description in turn, save resulting "match object" to new column
