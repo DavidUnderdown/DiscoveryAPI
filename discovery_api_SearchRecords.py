@@ -157,6 +157,15 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		else :
 			raise RuntimeError("No output file specified")
 		
+		if "excel_sheet_name" in row :
+			if row["excel_sheet_name"] :
+				sheet_name=row.pop("excel_sheet_name")
+			else :
+				sheet_name=None
+				del row["excel_sheet_name"]
+		else :
+			sheet_name=None
+		
 		if "output_encoding" in row :
 			if row["output_encoding"] :
 				output_encoding=row.pop("output_encoding")
@@ -182,7 +191,9 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				max_records=int(row.pop("max_records"))
 			else :
 				max_records=0
-				del row["max_records"] 
+				del row["max_records"]
+		else :
+			max_records=0
 		
 		## Now construct the API call.
 		## For use via the Python requests library the parameters (following the ? in the URLs above) are expressed as a Python dictionary of key-value pairs,
@@ -400,14 +411,20 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			if outputmode == "w" :
 				## create writer object, linked to the current outpath by using dictionary.
 				excelWriters[str(outpath)]=pd.ExcelWriter(outpath,engine=excelEngine)
-				## Define sheet name for this Discovery output (currently hardcoded to Sheet1), putting it in a list associated with the filepath
-				excelWriterSheets[str(outpath)]=["Sheet1"]
+				## Define sheet name for this Discovery output either the supplied name or Sheet1, putting it in a list associated with the filepath
+				if sheet_name :
+					excelWriterSheets[str(outpath)]=[sheet_name]
+				else :
+					excelWriterSheets[str(outpath)]=["Sheet1"]
 				## Create Excel output going to the defined writer and sheet
 				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][0],index=False,encoding=output_encoding)
 			else :
-				## We're adding to existing Excel file (in memory), so add a new sheet to the list for the current outpath, currently just Sheetn+1, where n
-				## is the number of sheets already in the list for this outpath
-				excelWriterSheets[str(outpath)].append("Sheet"+str(len(excelWriterSheets[str(outpath)])+1))
+				## We're adding to existing Excel file (in memory), so add a new sheet to the list for the current outpath, either the supplied name or
+				## just Sheetn+1, where n is the number of sheets already in the list for this outpath
+				if sheet_name :
+					excelWriterSheets[str(outpath)]=[sheet_name]
+				else :
+					excelWriterSheets[str(outpath)].append("Sheet"+str(len(excelWriterSheets[str(outpath)])+1))
 				## Create the Excel sheet on the relevant writer
 				df.to_excel(excelWriters[str(outpath)],excelWriterSheets[str(outpath)][-1],index=False,encoding=output_encoding)
 		else :
