@@ -160,6 +160,8 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		if "excel_sheet_name" in row :
 			if row["excel_sheet_name"] :
 				sheet_name=row.pop("excel_sheet_name")
+				if not (current_output_filepath.suffix == ".xls" or current_output_filepath.suffix == ".xlsx") :
+					print("Output file is not an Excel spreadsheet, sheet name will be ignored.")
 			else :
 				sheet_name=None
 				del row["excel_sheet_name"]
