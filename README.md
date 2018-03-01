@@ -8,7 +8,7 @@ See Richard Dunley's blog posts on using the catalogue as data: [Catalogue as Da
 # Using the script
 ## Input CSV
 On launching the script (or EXE) it will ask for an input CSV file.  Enter the full path to your input file or you can drag and drop from a file explorer window to the command line (at least in Windows), you'll still need to hit enter afterwards so that the script continues. Otherwise just hit enter, and the scirpt will look for an input CSV file called [discovery_api_SearchRecords_input_params.csv](https://github.com/DavidUnderdown/DiscoveryAPI/blob/master/discovery_api_SearchRecords_input_params.csv) in the current working directory (ie in most situations, in the same directory as the script itself).  The version of the file in this repository contains the parameters necessary to obtain the basic data used in Richard's first blog post (1795 records from record series SC 8, restricted to petitions from 1360-1380).
-###Input parameters
+### Input parameters
 Within the input CSV file you can include up to 38 columns.  The first 34 (parameter names prefixed with "sps.") are used as the URL parameters for the API call.  The remaining 4: labels, output_filepath, output_encoding, discovery_columns are for giving the list of labels expected in a structured description, the filepath(s) for the output, the text encoding to use (defaults to UTF-8) and the data fields from Discovery which to be included in the output.  To help understand what valid input looks like a CSV Schema file has also been created, [discovery_api_SearchRecords_input_params.csvs](https://github.com/DavidUnderdown/DiscoveryAPI/blob/master/discovery_api_SearchRecords_input_params.csvs) using the [CSV Schema Language 1.1](http://digital-preservation.github.io/csv-schema/csv-schema-1.1.html) created by The National Archives.  This can be used to check the structure of your own input CSV files using the [CSV Validator](http://digital-preservation.github.io/csv-validator/).
 
 The only mandatory parameters are sps.searchQuery for the URL parameters, and output_filepath.  You can include multiple rows to send different queries to the API in one running of the script.  Note though that you can query across multiple series in one query by supplying a list of series within a single row.  ie in the sps.recordSeries field of the CSV file you can specify things like "ADM 188, ADM 362, ADM 363" (which would query across several series containing the service records of naval ratings).  It probably only really makes sense (in terms of the output you'll get) to provide a list of series which have a (near) identical set of labels.
@@ -27,7 +27,7 @@ The text encoding to use for the output.  If left blank it will default to UTF-8
 #### discovery_columns
 The fields from the Discovery API to include in the output.  If none are given the default of "reference,coveringDates,startDate,endDate,numStartDate,numEndDate,description,id,places" will be assumed.
 
-##Output
+## Output
 Output will be written to the output file(s) defined in the input CSV.  The full JSON response to the API calls is now not called unless the debug flag in the script is set, in this case outptu would still go to to a file called response.json in the current working directory.
 
 The sample input CSV file still outputs to myRecords.csv.  If you specify a filename ending .xls or .xlsx an appropriate Excel file will be created (the text encoding is still applied).
