@@ -21,6 +21,36 @@ import pathvalidate;  #version 0.16.3, sanitisation of file/folder names
 import xlsxwriter;    #version 1.0.2, for writing out xlsx files (ie Excel 2003 onwards)
 import xlwt;          #version 1.3.0, for writing out xls files (ie Excel 97 and earlier)
 
+## helper function for making sure a supplied sheet name for Excel worksheet is unique - called recursively up to limit of 3 attempts
+def check_sheet_name_unique(test_sheet_name,call_count=0) :
+	print("entering sheet name checker for",call_count,"th time. Current sheet name",test_sheet_name)
+	if call_count < 3 :
+		print(str(outpath),str(excelWriterSheets))
+		if str(outpath) in excelWriterSheets :
+			if test_sheet_name in excelWriterSheets[str(outpath)] :
+				print(excelWriterSheets[str(outpath)])
+				if len(test_sheet_name) < (30-len(str(len(excelWriterSheets[str(outpath)])+1))) :
+					## If there's room to just put a number on the end (take the number of existing sheets plus 1)
+					test_sheet_name=test_sheet_name+str(len(excelWriterSheets[str(outpath)])+1)
+					print("sheet name is defined sheet name with number appended",test_sheet_name)
+				else :
+					## Otherwise, revert to just calling Sheet plus numbe of sheets (including this new one)
+					test_sheet_name="Sheet"+str(len(excelWriterSheets[str(outpath)])+1)
+					print("sheet name has reverted to,",test_sheet_name)
+				## Call the function recursively to check the name we've decided on is unique in the workbook
+				new_sheet_name=test_sheet_name
+				test_sheet_name=check_sheet_name_unique(new_sheet_name,call_count=call_count+1)
+				return test_sheet_name;
+			else :
+				print("no entry for sheetname in excelWriterSheets list for current filepath, returning sheet name",test_sheet_name)
+				return test_sheet_name;
+		else :
+			print("no entry for filepath in excelWriterSheets, returning sheet name",test_sheet_name)
+			return test_sheet_name;
+	else :
+		error_message=f"could not create unique name for worksheet {worksheet}!r in file {outpath}!r within 3 attempts"
+		raise RuntimeError(error_message)
+
 ## First, prepare regular expression to be used to pull required info out of record description, the bits with (?P<some_name>...) allow us to refer to bits of the description by name
 ## note though that to match original analysis we actually only need Addressees as places is already returned as a distinct field in the JSON.
 ## used in get_addressees function defined below.
@@ -160,8 +190,19 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 		if "excel_sheet_name" in row :
 			if row["excel_sheet_name"] :
 				sheet_name=row.pop("excel_sheet_name")
+				## Remove characters 
 				if not (current_output_filepath.suffix == ".xls" or current_output_filepath.suffix == ".xlsx") :
 					print("Output file is not an Excel spreadsheet, sheet name will be ignored.")
+				else :
+					for char in r"*|\/?:[]" :
+						if char in sheet_name :
+							sheet_name=sheet_name.replace(char,"")
+							print("removed unsupported character",char,"from given sheet_name")
+					if len(sheet_name) > 30 :
+						sheet_name=sheet_name[0:31]
+						print("supplied sheet name was too long: truncated to",sheet_name)
+					sheet_name=check_sheet_name_unique(sheet_name)
+					print("Final sheet name",sheet_name)
 			else :
 				sheet_name=None
 				del row["excel_sheet_name"]
@@ -402,8 +443,10 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 			outputmode="a"
 		else :
 			outputmode="w"
-			
-		if outpath.suffix in [".xls",".xlsx"] :
+		
+		print("output mode",outputmode)
+		
+		if outpath.suffix.lower() in [".xls",".xlsx"] :
 			## We want an actual Excel file,not CSV.  Pandas docs suggested engine would be found automagically based on extension, but that didn't seem
 			## to work, so explicitly set engine for ourselves.
 			if outpath.suffix == ".xls" :
@@ -424,7 +467,7 @@ with open(paramsIn,mode="r",newline='') as csvParamsIn :
 				## We're adding to existing Excel file (in memory), so add a new sheet to the list for the current outpath, either the supplied name or
 				## just Sheetn+1, where n is the number of sheets already in the list for this outpath
 				if sheet_name :
-					excelWriterSheets[str(outpath)]=[sheet_name]
+					excelWriterSheets[str(outpath)].append(sheet_name)
 				else :
 					excelWriterSheets[str(outpath)].append("Sheet"+str(len(excelWriterSheets[str(outpath)])+1))
 				## Create the Excel sheet on the relevant writer
